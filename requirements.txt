@@ -1,0 +1,7 @@
+overcooked-ai
+numpy<2
+scipy
+PyYAML>=6.0
+Pillow>=10.0
+imageio>=2.31
+pygame
