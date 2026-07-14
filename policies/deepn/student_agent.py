@@ -189,11 +189,30 @@ class StudentAgent:
         try:
             import gc
             from overcooked_ai_py.mdp.overcooked_env import OvercookedEnv
+            from overcooked_ai_py.planning.planners import MotionPlanner
+
+            class _MotionOnlyPlanner:
+                """Shim mínimo: featurize_state solo consulta .motion_planner.
+
+                El MediumLevelActionManager completo construye además un
+                JointMotionPlanner cuyo costo explota en layouts abiertos
+                (verificado: >1 hora en los layouts grandes del curso). El
+                MotionPlanner solo tarda segundos y es lo único que la
+                observación featurizada necesita.
+                """
+
+                def __init__(self, motion_planner):
+                    self.motion_planner = motion_planner
+
             for obj in gc.get_objects():
                 if isinstance(obj, OvercookedEnv):
                     try:
-                        _ = obj.mlam                      # carga/construye el planner
-                        _ = obj.featurize_state_mdp(obj.state)  # featurize completo
+                        if getattr(obj, "_mlam", None) is None:
+                            mp = MotionPlanner.from_pickle_or_compute(
+                                obj.mdp, counter_goals=[], force_compute=False
+                            )
+                            obj._mlam = _MotionOnlyPlanner(mp)
+                        _ = obj.featurize_state_mdp(obj.state)
                     except Exception:
                         pass
         except Exception:
